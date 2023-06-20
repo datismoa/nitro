@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import { existsSync, promises as fsp } from "node:fs";
+import { existsSync, accessSync, promises as fsp } from "node:fs";
 import { debounce } from "perfect-debounce";
 import {
   App,
@@ -99,6 +99,18 @@ async function killWorker(worker: NitroWorker, nitro: Nitro) {
   }
 }
 
+const tryAccessSync = (path) => {
+  try {
+    accessSync(path)
+
+    return true
+  }
+
+  catch {
+    return false
+  }
+}
+
 export function createDevServer(nitro: Nitro): NitroDevServer {
   // Worker
   const workerEntry = resolve(
@@ -190,7 +202,7 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
     eventHandler(async (event) => {
       await reloadPromise;
       const address = currentWorker && currentWorker.address;
-      if (!address || (address.socketPath && !existsSync(address.socketPath))) {
+      if (!address || (address.socketPath && !tryAccessSync(address.socketPath))) {
         return errorHandler(lastError, event);
       }
       await proxy.handle(event, { target: address }).catch((err) => {
